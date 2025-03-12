@@ -118,19 +118,19 @@ public class Robot extends TimedRobot {
     System.out.println(ClawMotor.getEncoder().getPosition());
     SmartDashboard.putNumber("Arm position", ClawMotor.getEncoder().getPosition());
 
-     if (m_stick.getRawButton(3)) {
+    if (m_stick.getRawButton(3)) {
       wristMotor.set(0.1);
-     } else if (m_stick.getRawButton(4) ) {
-     wristMotor.set(-0.1);
-      } else {
-     wristMotor.set(0);
-     }
+    } else if (m_stick.getRawButton(4) ) {
+      wristMotor.set(-0.1);
+    } else {
+      wristMotor.set(0);
+    }
     
-     if (m_stick.getRawButton(5)) {
-        ArmMotor.set(0.24);
-        SaveValue = ArmMotor.getEncoder().getPosition();
-        ButtonPushed= true;
-        StayMode=false;
+    if (m_stick.getRawButton(5)) {
+      ArmMotor.set(0.24);
+      SaveValue = ArmMotor.getEncoder().getPosition();
+      ButtonPushed= true;
+      StayMode=false;
     } else if (m_stick.getRawButton(6)) {
       ArmMotor.set(-0.18);
       SaveValue = ArmMotor.getEncoder().getPosition();
@@ -142,7 +142,6 @@ public class Robot extends TimedRobot {
         ButtonPushed = false;
         StayMode = true;
         SaveValue = ArmMotor.getEncoder().getPosition();
-
       } else if (StayMode) {
         if((ArmMotor.getEncoder().getPosition() - SaveValue) < 0)  {
           ArmMotor.set(0.05);
@@ -155,13 +154,13 @@ public class Robot extends TimedRobot {
     }
 
 
-      if (m_stick.getRawButton(1)) {
+    if (m_stick.getRawButton(1)) {
       ClawMotor.set(0.5);
-  } else if (m_stick.getRawButton(2) || m_stick.getRawButton(11)) {
-    ClawMotor.set(-0.5);
-  } else {
-    ClawMotor.set(0);
-  }
+    } else if (m_stick.getRawButton(2) || m_stick.getRawButton(11)) {
+      ClawMotor.set(-0.5);
+    } else {
+      ClawMotor.set(0);
+    }
 
 
 
