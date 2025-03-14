@@ -16,6 +16,7 @@ import com.revrobotics.spark.SparkBase.ResetMode;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.revrobotics.spark.config.SparkMaxConfig;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import java.lang.Math;
 
 
 /** This is a program that shows how to use Mecanum control with the MecanumDrive class. */
@@ -45,9 +46,24 @@ public class Robot extends TimedRobot {
   private final Joystick m_stick;
   
   //set encoder variables
-  private boolean ButtonPushed = false;
-  private boolean StayMode = false;
-  private double SaveValue = 0;
+  // private boolean ButtonPushed = false;
+  // private boolean StayMode = false;
+  // private double SaveValue = 0;
+
+  // settings for arm
+  private double maxArmSpeed = 0.5; // maximum speed used when arm moves to preset
+  private double manualArmSpeed = 0.25; // speed used when arm is moved manually using buttons 5 and 6
+  private double startingAngle = 0; // angle the arm will be at when the robot is powered on or the encoder is reset
+  private double presetAngle1 = 0; // angle the arm should move to when button 7 is pressed
+  private double presetAngle2 = 30; // angle the arm should move to when button 8 is pressed
+  private double presetAngle3 = 60; // angle the arm should move to when button 9 is pressed
+  private double presetAngle4 = 90; // angle the arm should move to when button 10 is pressed
+  private double slowdownAngle = 10; // increase if arm bounces, decrease if arm stops before reaching the preset angle
+
+  // other variables for arm
+  private boolean autoArm = false;
+  private double targetAngle;
+
 
   /** Called once at the beginning of the robot program. */
   public Robot() {
@@ -126,32 +142,62 @@ public class Robot extends TimedRobot {
       wristMotor.set(0);
     }
     
+
+
+
+
     if (m_stick.getRawButton(5)) {
-      ArmMotor.set(0.24);
-      SaveValue = ArmMotor.getEncoder().getPosition();
-      ButtonPushed= true;
-      StayMode=false;
+      autoArm=false;
+      ArmMotor.set(manualArmSpeed);
     } else if (m_stick.getRawButton(6)) {
-      ArmMotor.set(-0.18);
-      SaveValue = ArmMotor.getEncoder().getPosition();
-      ButtonPushed= true;
-      StayMode=false;
-    } else {
-      ArmMotor.set(0.0);
-      if (ButtonPushed) {
-        ButtonPushed = false;
-        StayMode = true;
-        SaveValue = ArmMotor.getEncoder().getPosition();
-      } else if (StayMode) {
-        if((ArmMotor.getEncoder().getPosition() - SaveValue) < 0)  {
-          ArmMotor.set(0.05);
-        } else if((ArmMotor.getEncoder().getPosition() - SaveValue) > 0) {
-          ArmMotor.set(-0.05);
-        } else {
-          ArmMotor.set(0);
-        }
-      }
+      autoArm=false;
+      ArmMotor.set(-manualArmSpeed);
+    } else if (autoArm=false) {
+      ArmMotor.set(0.0);}
+    
+    if (m_stick.getRawButton(7)) {
+      autoArm=true;
+      targetAngle=startingAngle+presetAngle1;
+    } else if (m_stick.getRawButton(8)) {
+      autoArm=true;
+      targetAngle=startingAngle+presetAngle2;
+    } else if (m_stick.getRawButton(9)) {
+      autoArm=true;
+      targetAngle=startingAngle+presetAngle3;
+    } else if (m_stick.getRawButton(10)) {
+      autoArm=true;
+      targetAngle=startingAngle+presetAngle4;
     }
+
+    if (autoArm) {
+      double currentAngle=startingAngle+ArmMotor.getEncoder().getPosition()/360;
+      double armSpeed = Math.pow(((targetAngle-currentAngle)/slowdownAngle), 3);
+      if (armSpeed>1) {
+        armSpeed=1;
+      } else if (armSpeed<-1) {
+        armSpeed=-1;
+      }
+      ArmMotor.set(armSpeed/maxArmSpeed);
+    }
+
+    //   if (ButtonPushed) {
+    //     ButtonPushed = false;
+    //     StayMode = true;
+    //     SaveValue = ArmMotor.getEncoder().getPosition();
+    //   } else if (StayMode) {
+    //     if((ArmMotor.getEncoder().getPosition() - SaveValue) < 0)  {
+    //       ArmMotor.set(0.05);
+    //     } else if((ArmMotor.getEncoder().getPosition() - SaveValue) > 0) {
+    //       ArmMotor.set(-0.05);
+    //     } else {
+    //       ArmMotor.set(0);
+    //     }
+    //   }
+    // }
+
+
+
+
 
 
     if (m_stick.getRawButton(1)) {
