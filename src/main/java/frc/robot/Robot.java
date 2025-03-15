@@ -9,13 +9,19 @@ import edu.wpi.first.util.sendable.SendableRegistry;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.drive.MecanumDrive;
+//import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
+//import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
 import edu.wpi.first.wpilibj.Timer;
+
+import java.lang.constant.DirectMethodHandleDesc;
+
 import com.revrobotics.spark.*;
 import com.revrobotics.spark.SparkBase.PersistMode;
 import com.revrobotics.spark.SparkBase.ResetMode;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.revrobotics.spark.config.SparkMaxConfig;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj.XboxController;
 
 
 /** This is a program that shows how to use Mecanum control with the MecanumDrive class. */
@@ -35,7 +41,7 @@ public class Robot extends TimedRobot {
   SparkMax ArmMotor;
   SparkMax wristMotor;
   SparkMax ClawMotor;
-  Joystick joystick;
+
   // set the time
   private final Timer mTimer=new Timer();
 
@@ -43,6 +49,7 @@ public class Robot extends TimedRobot {
 
   private final MecanumDrive m_robotDrive;
   private final Joystick m_stick;
+  private final XboxController ArmController = new XboxController(1);
   
   //set encoder variables
   private boolean ButtonPushed = false;
@@ -51,6 +58,10 @@ public class Robot extends TimedRobot {
 
   /** Called once at the beginning of the robot program. */
   public Robot() {
+
+    // Shuffleboard setup
+    //private ShuffleboardTab tab;
+    //tab = Shuffleboard.getTab("Arm position"); 
    
     // initialize the motors
     leftLeader = new SparkMax (kLeftLeaderPort,  SparkLowLevel.MotorType.kBrushless);
@@ -101,38 +112,40 @@ public class Robot extends TimedRobot {
     SendableRegistry.addChild(m_robotDrive, rightFollower);
    
   }
-
   @Override
   public void teleopPeriodic() {
-    // speed damper
-    double speedFactor = 0.7;
+    // speed setting for all drive motors
+    
+    double Wrist = ArmController.getRightX();
+    double Arm = ArmController.getLeftY();
+    double ClawHold = ArmController.getLeftTriggerAxis();
+    double Drivespeed = 0.7;
 
     // Use the joystick Y axis for forward movement, X axis for lateral, movement, and Z axis for rotation.
-    //m_robotDrive.driveCartesian(0, 0.1, 0);
 
+    // m_robotDrive.driveCartesian(-m_stick.getY() * Drivespeed, m_stick.getX() * Drivespeed, -m_stick.getZ() * Drivespeed, Rotation2d.kZero);
     
-
-    //m_robotDrive.driveCartesian(-m_stick.getY() * speedFactor, m_stick.getX() * speedFactor, -m_stick.getZ() * speedFactor, Rotation2d.kZero);
-    
-    System.out.println(ArmMotor.getEncoder().getPosition());
+    /*** System.out.println(ArmMotor.getEncoder().getPosition());
     System.out.println(ClawMotor.getEncoder().getPosition());
     SmartDashboard.putNumber("Arm position", ClawMotor.getEncoder().getPosition());
-
-    if (m_stick.getRawButton(3)) {
-      wristMotor.set(0.1);
-    } else if (m_stick.getRawButton(4) ) {
-      wristMotor.set(-0.1);
-    } else {
-      wristMotor.set(0);
-    }
+    */
     
-    if (m_stick.getRawButton(5)) {
-      ArmMotor.set(0.24);
-      SaveValue = ArmMotor.getEncoder().getPosition();
-      ButtonPushed= true;
-      StayMode=false;
-    } else if (m_stick.getRawButton(6)) {
-      ArmMotor.set(-0.18);
+
+     if (Wrist > 0.1) { 
+      wristMotor.set(0.1);
+     } else if (Wrist < -0.1) {
+     wristMotor.set(-0.1);
+      } else {
+     wristMotor.set(0);
+     }
+    
+     if (Arm < -0.1) {
+        ArmMotor.set(0.2);
+        SaveValue = ArmMotor.getEncoder().getPosition();
+        ButtonPushed= true;
+        StayMode=false;
+    } else if (Arm > 0.1) {
+      ArmMotor.set(-0.15);
       SaveValue = ArmMotor.getEncoder().getPosition();
       ButtonPushed= true;
       StayMode=false;
@@ -142,6 +155,7 @@ public class Robot extends TimedRobot {
         ButtonPushed = false;
         StayMode = true;
         SaveValue = ArmMotor.getEncoder().getPosition();
+
       } else if (StayMode) {
         if((ArmMotor.getEncoder().getPosition() - SaveValue) < 0)  {
           ArmMotor.set(0.05);
@@ -154,13 +168,15 @@ public class Robot extends TimedRobot {
     }
 
 
-    if (m_stick.getRawButton(1)) {
+      if (ArmController.getRawButton(6)) {
       ClawMotor.set(0.5);
-    } else if (m_stick.getRawButton(2) || m_stick.getRawButton(11)) {
-      ClawMotor.set(-0.5);
-    } else {
-      ClawMotor.set(0);
-    }
+  } else if (ArmController.getRawButton(5)) {
+    ClawMotor.set(-0.5);
+  } else if (ClawHold > 0.1){
+      ClawMotor.set(-0.08);
+  } else {
+    ClawMotor.set(0);
+  }
 
 
 
@@ -229,13 +245,47 @@ public class Robot extends TimedRobot {
 
   @Override
   public void autonomousPeriodic() {
-      if (mTimer.get() < 3.0) {
-          // Drive forward with mecanum drive (0.0 is no strafe, 0.5 is half speed forward, 0.0 is no rotation)
-          m_robotDrive.driveCartesian(0.2, 0.0, 0.0);
-      } else {
-          // Stop the robot after 4 seconds
-          m_robotDrive.driveCartesian(0.0, 0.0, 0.0);
-          mTimer.stop();
-      }
+    
+    if (mTimer.get() < 3.0) {
+      // Drive forward with mecanum drive (0.0 is no strafe, 0.5 is half speed forward, 0.0 is no rotation)
+      m_robotDrive.driveCartesian(0.2, 0.0, 0.0);
+  } else {
+      // Stop the robot after 4 seconds
+      m_robotDrive.driveCartesian(0.0, 0.0, 0.0);
   }
-}
+    if (mTimer.get() < 0.9 ){
+      ArmMotor.set(0.2);
+    } else {
+      ArmMotor.set(0);
+    } 
+
+    if (mTimer.get() < 0.5) {
+      wristMotor.set(0.1);
+    } else {
+      wristMotor.set(0);
+    }
+    
+    
+    if (mTimer.get() > 3.0) {
+      ClawMotor.set(0.2);
+    } else {
+      ClawMotor.set(0);
+    } 
+    
+    if (mTimer.get() < 3.0) {
+      ClawMotor.set(-0.1);
+    } else { 
+      ClawMotor.set(0);
+      mTimer.stop();
+    }
+    
+    
+  } } 
+    
+    
+    
+    
+    
+    
+    
+    
